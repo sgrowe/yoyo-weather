@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Yoyo weather app</title>
+
+    <style>
+        .graph-area {}
+
+    </style>
+</head>
+<body>
+
+    <div ng-app="app">
+        <div ng-controller="BarCtrl">
+            <div class="graph-area">
+                <canvas id="bar" class="chart chart-bar" chart-data="data" chart-labels="labels" chart-series="series"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.2.1/Chart.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-chart.js/1.0.0/angular-chart.min.js"></script>
+
+    <script>
+        angular.module("app", ["chart.js"]).controller("BarCtrl", function ($scope, $http) {
+            $scope.labels = ['2006', '2007', '2008', '2009', '2010', '2011', '2012'];
+            $scope.series = ['Series A', 'Series B'];
+
+            $scope.data = [
+                [65, 59, 80, 81, 56, 55, 40],
+                [28, 48, 40, 19, 86, 27, 90]
+            ];
+
+            function loadData() {
+                var url = 'api/weather/?city=Paris&period=week';
+                $http({
+                      method: 'GET',
+                      url: url
+                }).then(function successCallback(response) {
+                    console.log(response.data);
+
+                    // this callback will be called asynchronously
+                    // when the response is available
+                }, function errorCallback(response) {
+                    // called asynchronously if an error occurs
+                    // or server returns response with an error status.
+                });
+            }
+            loadData();
+        });
+    </script>
+
+</body>
+</html>

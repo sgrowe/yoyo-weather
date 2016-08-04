@@ -15,10 +15,11 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
-from stats.views import weather_statistics
+from stats.views import weather_statistics, HomePageView
 
 
 urlpatterns = [
+    url(r'^$', HomePageView.as_view(), name='home'),
     url(r'^api/', include([
         url(r'^weather/$', weather_statistics, name='weather'),
     ])),

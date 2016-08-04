@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import APIException
+from rest_framework.response import Response
+from django.views.generic.base import TemplateView
 from urllib.parse import quote as url_quote
 from statistics import mean, median
 import requests
-from rest_framework.exceptions import APIException
-from rest_framework.response import Response
 
 GEOCODING_API_KEY = "AIzaSyD6uu4X9WOw2-hjcFrhooEuev2YBLCgZ_k"
 
@@ -107,3 +108,7 @@ def weather_statistics(request):
 class UnknownAddress(APIException):
     status_code = 503
     default_detail = 'That address does not exist.'
+
+
+class HomePageView(TemplateView):
+    template_name = "home.html"
