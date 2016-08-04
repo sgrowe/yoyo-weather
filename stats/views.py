@@ -57,7 +57,10 @@ class WeatherData:
             # Api returns two days worth of hourly data so only take the first half
             half_len = len(data_for_period) // 2
             data_for_period = data_for_period[:half_len]
-        data = [x[item] for x in data_for_period]
+        try:
+            data = [x[item] for x in data_for_period]
+        except KeyError:
+            data = [0]  # Data is not always available
         times = [x['time'] for x in data_for_period]
         return {
             'median': median(data),
