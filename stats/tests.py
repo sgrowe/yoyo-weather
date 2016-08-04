@@ -1,4 +1,3 @@
-from unittest import skip
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 from rest_framework.test import APITestCase
@@ -21,22 +20,32 @@ class GeocodingTests(TestCase):
 
 class WeatherDataTests(TestCase):
     def test_calculates_correct_statistics(self):
+        test_values = [
+            (47.5, 100),
+            (13.2, 200),
+            (20.6, 300),
+        ]
         data = {
             'daily': {
-                'data': [{'humidity': h} for h in [47.5, 13.2, 20.6]],
+                'data': [{'humidity': h, 'time': time} for h, time in test_values],
             }
         }
         weather_data = WeatherData(data)
         stats = weather_data._get_stats_for('daily', 'humidity')
-        self.assertAlmostEqual(stats['mean'], 27.1)
         self.assertEqual(stats['min'], 13.2)
         self.assertEqual(stats['max'], 47.5)
         self.assertEqual(stats['median'], 20.6)
+        self.assertAlmostEqual(stats['mean'], 27.1)
 
     def test_returns_valid_serialised_data(self):
+        test_values = [
+            (47.5, 21.0, 1),
+            (13.2, 4.5, 2),
+            (20.6, 33.3, 3),
+        ]
         data = {
             'daily': {
-                'data': [{'humidity': h, 'temperatureMax': t} for h, t in [(47.5, 21.0), (13.2, 4.5), (20.6, 33.3)]],
+                'data': [{'humidity': h, 'temperatureMax': temp, 'time': time} for h, temp, time in test_values],
             }
         }
         weather_data = WeatherData(data)

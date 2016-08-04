@@ -1,11 +1,12 @@
 from rest_framework import serializers
 from rest_framework.decorators import api_view
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ParseError
 from rest_framework.response import Response
 from django.views.generic.base import TemplateView
 from urllib.parse import quote as url_quote
 from statistics import mean, median
 import requests
+
 
 GEOCODING_API_KEY = "AIzaSyD6uu4X9WOw2-hjcFrhooEuev2YBLCgZ_k"
 
@@ -51,18 +52,20 @@ class WeatherData:
         try:
             data_for_period = self.json[period]['data']
         except KeyError:
-            # TODO: handle requested level of precision is not available
-            raise
+            raise APIException(detail="The requested time period is not currently availalble.")
         if period == 'hourly':
             # Api returns two days worth of hourly data so only take the first half
             half_len = len(data_for_period) // 2
             data_for_period = data_for_period[:half_len]
         data = [x[item] for x in data_for_period]
+        times = [x['time'] for x in data_for_period]
         return {
             'median': median(data),
             'mean': mean(data),
             'min': min(data),
             'max': max(data),
+            'raw_values': data,
+            'times': times,
         }
 
     def _get_serialised_data_for(self, period, item):
@@ -70,10 +73,9 @@ class WeatherData:
 
     def get_serialiser(self, period):
         try:
-            time_period = self.time_periods[period]
+            time_period = self.time_periods[period.lower()]
         except KeyError:
-            # TODO: give helpful error message for unsupported time period
-            raise
+            raise ParseError(detail='"{}" is not a supported time period, only week, day and hour are allowed.')
         temperature = 'temperatureMax' if time_period == 'daily' else 'temperature'
         data = {
             'humidity': self._get_stats_for(time_period, 'humidity'),
@@ -87,6 +89,8 @@ class StatisticsSerialiser(serializers.Serializer):
     median = serializers.FloatField()
     min = serializers.FloatField()
     max = serializers.FloatField()
+    raw_values = serializers.ListField(serializers.FloatField())
+    times = serializers.ListField(serializers.IntegerField())
 
 
 class WeatherDataSerialiser(serializers.Serializer):
