@@ -1,4 +1,7 @@
+from unittest import skip
 from django.test import TestCase
+from django.core.urlresolvers import reverse
+from rest_framework.test import APITestCase
 from stats.views import get_latitude_and_longitude, WeatherData, get_forecast_data
 
 
@@ -45,3 +48,12 @@ class GetForecastDataTests(TestCase):
     def test_returns_weather_data_object(self):
         data = get_forecast_data(37.8267, -122.423)
         self.assertIsInstance(data, WeatherData)
+
+
+class TestWeatherStatisticsView(APITestCase):
+    def test_returns_statistics_without_error(self):
+        url = reverse('weather')
+        url += '?city=Paris&period=day'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('median', response.data['humidity'])

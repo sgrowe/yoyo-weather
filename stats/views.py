@@ -3,6 +3,8 @@ from rest_framework.decorators import api_view
 from urllib.parse import quote as url_quote
 from statistics import mean, median
 import requests
+from rest_framework.exceptions import APIException
+from rest_framework.response import Response
 
 GEOCODING_API_KEY = "AIzaSyD6uu4X9WOw2-hjcFrhooEuev2YBLCgZ_k"
 
@@ -18,7 +20,7 @@ def get_latitude_and_longitude(address):
     elif data['status'] == 'ZERO_RESULTS':
         return None
     else:
-        raise ValueError
+        raise ValueError("Could not fetch latitude and longitude of address.", address)
 
 
 FORECAST_API_KEY = "edf73a3d61144d6a104356f2b53bf5b9"
@@ -30,6 +32,8 @@ def get_forecast_data(latitude, longitude):
     response = requests.get(url)
     if response.status_code == 200:
         return WeatherData(response.json())
+    else:
+        raise ValueError('Could not fetch weather forecast.', latitude, longitude, response)
 
 
 class WeatherData:
@@ -70,3 +74,21 @@ class StatisticsSerialiser(serializers.Serializer):
 class WeatherDataSerialiser(serializers.Serializer):
     humidity = StatisticsSerialiser()
     temperature = StatisticsSerialiser()
+
+
+class UnknownAddress(APIException):
+    status_code = 503
+    default_detail = 'That address does not exist.'
+
+
+@api_view()
+def weather_statistics(request):
+    city = request.query_params['city']
+    period = request.query_params['period']  # TODO
+    location = get_latitude_and_longitude(city)
+    if location is None:
+        raise UnknownAddress()
+    weather_data = get_forecast_data(*location)
+    return Response(weather_data.get_serialiser().initial_data)
+
+
