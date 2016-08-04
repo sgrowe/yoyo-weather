@@ -27,7 +27,7 @@ class WeatherDataTests(TestCase):
             }
         }
         weather_data = WeatherData(data)
-        stats = weather_data._get_stats_for('humidity')
+        stats = weather_data._get_stats_for('daily', 'humidity')
         self.assertAlmostEqual(stats['mean'], 27.1)
         self.assertEqual(stats['min'], 13.2)
         self.assertEqual(stats['max'], 47.5)
@@ -40,7 +40,7 @@ class WeatherDataTests(TestCase):
             }
         }
         weather_data = WeatherData(data)
-        serialiser = weather_data.get_serialiser()
+        serialiser = weather_data.get_serialiser('week')
         self.assertTrue(serialiser.is_valid())
 
 
@@ -51,9 +51,18 @@ class GetForecastDataTests(TestCase):
 
 
 class TestWeatherStatisticsView(APITestCase):
-    def test_returns_statistics_without_error(self):
-        url = reverse('weather')
-        url += '?city=Paris&period=day'
+    def test_returns_next_days_statistics_without_error(self):
+        url = reverse('weather') + '?city=Paris&period=day'
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertIn('median', response.data['humidity'])
+        for measure in ('temperature', 'humidity'):
+            for stat in ('min', 'max', 'mean', 'median'):
+                self.assertIn(stat, response.data[measure])
+
+    def test_returns_next_weeks_statistics_without_error(self):
+        url = reverse('weather') + '?city=Paris&period=week'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        for measure in ('temperature', 'humidity'):
+            for stat in ('min', 'max', 'mean', 'median'):
+                self.assertIn(stat, response.data[measure])

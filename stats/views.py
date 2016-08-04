@@ -37,15 +37,26 @@ def get_forecast_data(latitude, longitude):
 
 
 class WeatherData:
+    time_periods = {
+        'week': 'daily',
+        'day': 'hourly',
+        'hour': 'minutely',
+    }
+
     def __init__(self, json):
         self.json = json
 
-    def _get_daily_data_for(self, item):
-        for day in self.json['daily']['data']:
-            yield day[item]
-
-    def _get_stats_for(self, item):
-        data = list(self._get_daily_data_for(item))
+    def _get_stats_for(self, period, item):
+        try:
+            data_for_period = self.json[period]['data']
+        except KeyError:
+            # TODO: handle requested level of precision is not available
+            raise
+        if period == 'hourly':
+            # Api returns two days worth of hourly data so only take the first half
+            half_len = len(data_for_period) // 2
+            data_for_period = data_for_period[:half_len]
+        data = [x[item] for x in data_for_period]
         return {
             'median': median(data),
             'mean': mean(data),
@@ -53,13 +64,19 @@ class WeatherData:
             'max': max(data),
         }
 
-    def _get_serialised_data_for(self, item):
-        return StatisticsSerialiser(data=self._get_stats_for(item))
+    def _get_serialised_data_for(self, period, item):
+        return StatisticsSerialiser(data=self._get_stats_for(period, item))
 
-    def get_serialiser(self):
+    def get_serialiser(self, period):
+        try:
+            time_period = self.time_periods[period]
+        except KeyError:
+            # TODO: give helpful error message for unsupported time period
+            raise
+        temperature = 'temperatureMax' if time_period == 'daily' else 'temperature'
         data = {
-            'humidity': self._get_stats_for('humidity'),
-            'temperature': self._get_stats_for('temperatureMax'),
+            'humidity': self._get_stats_for(time_period, 'humidity'),
+            'temperature': self._get_stats_for(time_period, temperature),
         }
         return WeatherDataSerialiser(data=data)
 
@@ -76,19 +93,17 @@ class WeatherDataSerialiser(serializers.Serializer):
     temperature = StatisticsSerialiser()
 
 
-class UnknownAddress(APIException):
-    status_code = 503
-    default_detail = 'That address does not exist.'
-
-
 @api_view()
 def weather_statistics(request):
     city = request.query_params['city']
-    period = request.query_params['period']  # TODO
+    period = request.query_params['period']
     location = get_latitude_and_longitude(city)
     if location is None:
         raise UnknownAddress()
     weather_data = get_forecast_data(*location)
-    return Response(weather_data.get_serialiser().initial_data)
+    return Response(weather_data.get_serialiser(period).initial_data)
 
 
+class UnknownAddress(APIException):
+    status_code = 503
+    default_detail = 'That address does not exist.'
